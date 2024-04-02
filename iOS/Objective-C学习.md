@@ -137,3 +137,22 @@ Tips：若需要自己定义初始化的过程，可以重写init方法(类似�
 
 #### 方法
 
+方法的声明包含方法类型标识符：<b>+</b> / <b>-</b>，返回值类型，一个或多个方法标识关键字，参数类型，参数名信息。方法的实际名字是所有方法标识关键的级联，包含冒号。冒号表明了参数的出现，如果方法没有参数，则可以省略第一个(也是唯一的)方法表示关键字之后的冒号
+
+```objective-c
+- (void)insertObject:(id)anObject atIndex:(NSUInteger)index;
+// "-" : 表明这是一个实例方法
+// void: 表明返回值类型
+// insertObject:atIndex是函数名
+// (id)anObject (NSUInteger)index表明的是参数类型及其名称
+```
+
+当要调用一个方法传递消息到对应的对象的时候，发送给对象的所有消息都会动态分发，这样有利于实现Objective-C类的多态行为。如果子类定义了跟父类的具有相同标识符的方法，那么子类首先收到消息，然后可以有选择的把消息转发(也可以不转发)给它的父类。
+
+消息被中括号 <b>[ ]</b> 包括。中括号中间，接收消息的对象在左边，消息(包含消息需要的任何参数)在右边。
+
+```objective-c
+// 给myArray变量传递消息 insertObject:atIndex: 消息
+[myArray insertObject:anObj atIndex:0];
+```
+
