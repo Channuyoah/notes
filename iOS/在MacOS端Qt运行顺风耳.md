@@ -65,7 +65,7 @@ libcrypto.a: current ar archive random library
 
   这将显示libssl.a文件中的所有符号。如果文件包含了针对iOS设备和模拟器架构的符号，尝试在输出中寻找是否有相应的符号。
 
-发现其中没有\_\_ARM\_\_、\_\__aeabi\_\_、\_\_x86__、\_\_i386\_\_的符号，说明该库文件应该使用的是通用的符号。
+~~发现其中没有\_\_ARM\_\_、\_\__aeabi\_\_、\_\_x86__、\_\_i386\_\_的符号，说明该库文件应该使用的是通用的符号。~~
 
 ### 调整方向
 
@@ -77,7 +77,7 @@ libcrypto.a: current ar archive random library
 
 运用到当前的顺风耳项目上来说就是，在Qt当中使用的ios模拟器是Xcode提供的，Xcode提供的模拟器是x86架构的，但是当前我们的计算机架构是arm架构，所以说需要在构建编译的时候添加编译选项让其生成的链接文件是针对x86架构的，这样我们的模拟器才可以成功运行。
 
-**通过询问成哥**，发现问题是OpenSSL库我们ios下的可能没有x86符号，之前理解的nm命令查看的是理解有误。
+**通过询问成哥，发现问题是OpenSSL库我们ios下的可能没有x86符号，之前理解的nm命令查看的是理解有误。**
 
 ### 寻找ios的OpenSSL库
 
@@ -103,4 +103,133 @@ libcrypto.a: current ar archive random library
 
 2、开始编译构建不同平台的OpenSSL库
 
-支持iOS平台：
+### 支持iOS平台的OpenSSL库：
+
+##### 1、将OpenSSL源码放到Mac当中，使用iTerm进入openssl源码文件夹
+
+##### 2、使用`./Configure ios-arm64`命令
+
+**出现问题：**`permission denied:/.Configure`这个表明我们macOS命令行执行`./Configure`时出现权限被拒绝的错误。
+
+**解决问题：**因为我们没有为其添加执行权限：`chmod +x Configure`。
+
+这里解释一下`chmod +x`表明将文件的执行权限设置为允许所有者、组和其他用户执行该文件
+
+`./Configure`是一个脚本文件，通常用于配置源代码以进行编译，在OpenSSL的情况下，执行该命令时，会根据指定的选项生成Makefile文件，这个Makefile文件用于指导后续的编译过程
+
+##### 3、执行`make`命令
+
+**出现问题：**`*** No targets specified and no makefile found. Stop.`这个表明它没有找到makefile文件，说明我们之前的`./Configure ios-arm64`没有生成makefile文件。这个可能是由于配置过程中出现了问题，下面尝试解决这个问题。
+
+**解决问题：**
+
+- 检查在执行`./Configure`命令时有没有出现错误信息
+
+执行之后发现在命令行出现了Makefile关键字，此时在重新运行一次以上步骤，即可make，等待执行编译完成。
+
+我们需要的是libssl.a和libcrypto.a可以通过find . -name "*.a"文件查找该目录下所有的.a文件
+
+### 测试新编译的OpenSSL库文件
+
+发现还是报错一样的，构建了ios的openssl库，但是这里需要链接的符号是x86的，因为是使用的xCode提供的模拟器，这个模拟器是x86架构的，所以应该生成的是x86架构的OpenSSL下面重新生成
+
+`./Configure darwin64-x86_64-cc`，这里darwin64表示目标平台是macOS，x86_64表示目标架构是x86_64，cc表示使用C编译器(gcc/clang)进行编译。
+
+make之后报错: 
+
+```bash
+Undefined symbols for architecture x86_64:
+  "_ossl_kdf_pbkdf2_default_checks", referenced from:
+      _kdf_pbkdf2_new in libdefault.a[x86_64][94](libdefault-lib-pbkdf2.o)
+      _kdf_pbkdf2_reset in libdefault.a[x86_64][94](libdefault-lib-pbkdf2.o)
+ld: symbol(s) not found for architecture x86_64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+make[1]: *** [libcrypto.3.dylib] Error 1
+make: *** [build_sw] Error 2
+```
+
+[类似的回答](https://github.com/openssl/openssl/issues/17979)
+
+我重新 make clean之后再次`./Configure darwin64-x86_64-cc`再次`make`没问题了
+
+此时运行qt报错：
+
+```bash
+ld: building for 'iOS-simulator', but linking in object file (/Users/leo/cc/qt-Project/sfe-mobile/ssltool/openssl/bin/ios/libcrypto.a[2](libcrypto-lib-aes-x86_64.o)) built for 'macOS'
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+```
+
+见错知意，这里表示是为iOS模拟器构建，但在为macOS构建的目标文件中链接，文件xx用于构架macOS，这个原因应该是我们使用的编译器是macOS全局的gcc/clang，最好使用qt构建使用的编译器，打开macOS端的qt寻找我们iOS-Simulator的编译器，发现是Apple Clang(x86_64) Clang，从构建套件中查看到编译器的路径。
+
+现在1可以直接使用这个编译器，2可以将这个编译器放置到path当中，接下来尝试使用添加环境变量
+
+```bash
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang
+```
+
+使用macOS的命令行工具iTerm
+
+```bash
+cd ~
+ls -a
+vim .zshrc 
+export CC=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang
+```
+
+再次进入openssl源代码目录
+
+```bash
+make clean
+./Configure darwin64-x86_64-cc # 这里会使用当前环境变量中设置的CC编译器
+make
+```
+
+还是报错相同，我在Windows上检测了两个文件是否是相同的(为了检测是否使用的是同一个编译器编译的文件)，结构貌似是不同的。
+
+```bash
+cmp libssl.a ../ios-arm64/ios/libssl.a
+# 输出：
+libssl.a ../ios-arm64/ios/libssl.a differ: char 30, line 2
+```
+
+发现不行之后决定去github上面寻找ios的OpsnSSL(这个才更新没有多长时间)
+
+[github iOS OpenSSL](git@github.com:krzyzanowskim/OpenSSL.git)
+
+### 新问题：无法访问assets文件夹内资源
+
+[iOS与Android资源文件读写对比](https://blog.csdn.net/gaussrieman123/article/details/89467829)
+
+成哥说他之前跑的时候可以运行，iOS也可以访问assets目录，只不过需要安装assets，其实在Android上访问assets它也是事先安装了assets的(貌似是自动安装？)，现在我将对比trtc-mobile.pro文件来查看如何使sfe顺利的访问assets资源
+
+## 关于Qt内的资源系统
+
+.qrc资源文件和assets文件系统的区别：
+
+
+
+#### 尝试
+
+在Me.qml文件当中将其中的一个back.png由`$app.asset("images/next.png")`改为绝对地址：`file:///User/leo/cc/qt-Project/sfe-mobile/assets/images/back.png`发现能够成功加载这个图标。说明是能够成功访问到我们sfe-mobile/assets目录，因此极大可能是路径出错误了，下面在.pro文件当中修改assets.path和assets.files的路径
+
+```q
+assets.files = $$PWD/assets/
+assets.path = $$PWD/assets/
+INSTALLS += assets
+QMAKE_BUNDLE_DATA += assets
+message("assets.path: $$assets.path")
+message("assets.path: $$assets.path")
+```
+
+这里输出的assets.path地址是: 
+
+```path
+Project MESSAGE: assets.path: /Users/leo/cc/qt-Project/sfe-mobile/assets/
+```
+
+其中资源的报错说找不到这个：
+
+```path
+file://users/leo/Library/Developer/CoreSimulator/Devices/CCAEEE60-4D83-40F2-B6A7-4EBC5348E702/data/Containers/Bundle/Application/75177443-705F-4881-8F98-C1821A560971/sfe-mobile.app/assets/images/next.png
+```
+
