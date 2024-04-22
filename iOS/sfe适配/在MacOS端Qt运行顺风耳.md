@@ -233,3 +233,17 @@ Project MESSAGE: assets.path: /Users/leo/cc/qt-Project/sfe-mobile/assets/
 file://users/leo/Library/Developer/CoreSimulator/Devices/CCAEEE60-4D83-40F2-B6A7-4EBC5348E702/data/Containers/Bundle/Application/75177443-705F-4881-8F98-C1821A560971/sfe-mobile.app/assets/images/next.png
 ```
 
+### 解决方案
+
+#### assets文件资源适配
+
+#### 翻译资源适配
+
+链接: 
+
+CONFIG += lrelease
+
+CONFIG += embed_translations
+
+这里lrelease会将翻译文件弄成.qm文件
+.qm文件是什么文件？详情看翻译适配
