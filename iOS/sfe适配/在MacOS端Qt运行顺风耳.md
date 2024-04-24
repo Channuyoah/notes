@@ -194,7 +194,7 @@ libssl.a ../ios-arm64/ios/libssl.a differ: char 30, line 2
 
 发现不行之后决定去github上面寻找ios的OpsnSSL(这个才更新没有多长时间)
 
-[github iOS OpenSSL](git@github.com:krzyzanowskim/OpenSSL.git)
+[github iOS OpenSSL](github.com/krzyzanowskim/OpenSSL.git)
 
 ### 新问题：无法访问assets文件夹内资源
 
