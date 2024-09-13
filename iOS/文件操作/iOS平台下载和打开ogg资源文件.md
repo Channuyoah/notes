@@ -8,7 +8,7 @@
 
 ```js
     function downloadAndOpenFile(url) {
-        // 这里的url是ogg服务器资源url
+        // 这里的url是oss服务器资源url
         let decodedUri = decodeURIComponent(url)
         let filename = decodedUri.substring(decodedUri.lastIndexOf('/') + 1)
         let filepath = $native.downloadFilepath(filename)
