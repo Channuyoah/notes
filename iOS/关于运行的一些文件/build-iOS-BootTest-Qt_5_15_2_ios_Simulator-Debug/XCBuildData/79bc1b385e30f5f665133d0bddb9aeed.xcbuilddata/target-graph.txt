@@ -1,4 +1,0 @@
-Target dependency graph (2 targets)
-Target 'iOS-BootTest' in project 'iOS-BootTest'
-➜ Explicit dependency on target 'Qt Preprocess' in project 'iOS-BootTest'
-Target 'Qt Preprocess' in project 'iOS-BootTest' (no dependencies)
